@@ -1,7 +1,0 @@
-numpy
-matplotlib
-astropy
-scipy
-pandas
-tqdm
-requests
