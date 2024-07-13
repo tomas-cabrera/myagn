@@ -49,7 +49,7 @@ class AGNDistribution:
         )
 
         # Sum, multiply by elements to get total number of agns
-        n_agns = np.sum(dn_dOmega_dz) * dOmega * (dz_grid[1] - dz_grid[0])
+        n_agns = np.trapezoid(dn_dOmega_dz, dz_grid) * dOmega
 
         return n_agns
 
