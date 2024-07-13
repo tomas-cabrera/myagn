@@ -8,4 +8,4 @@
 **/*.egg-info/
 
 # distribution
-**/dist/
+/dist/
