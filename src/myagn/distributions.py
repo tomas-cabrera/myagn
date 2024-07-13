@@ -1,4 +1,5 @@
 """Module handling AGN distributions"""
+
 import astropy.constants as const
 import astropy.units as u
 import numpy as np
@@ -52,6 +53,7 @@ class AGNDistribution:
 
         return n_agns
 
+
 class QLFHopkins(AGNDistribution):
     """AGN distribution modeled after Hopkins+06
 
@@ -65,7 +67,7 @@ class QLFHopkins(AGNDistribution):
         self,
         zs=np.linspace(0, 1, 50),
         cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
-        limiting_magnitude=np.inf,
+        magnitude_limits=(np.inf, -np.inf),
     ):
         """Calculate number density of visible AGNs at given redshifts.
 
@@ -75,8 +77,8 @@ class QLFHopkins(AGNDistribution):
             _description_, by default np.linspace(0, 1, 50)
         cosmo : _type_, optional
             _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
-        limiting_magnitude : _type_, optional
-            _description_, by default np.inf
+        magnitude_limits : _type_, optional
+            _description_, by default (np.inf, -np.inf)
 
         Returns
         -------
@@ -84,7 +86,7 @@ class QLFHopkins(AGNDistribution):
             _description_
         """
         # Calculate limiting flux
-        f_nu_det = (limiting_magnitude * u.ABmag).to(u.erg / u.s / u.cm**2 / u.Hz)
+        f_nu_det = (magnitude_limits * u.ABmag).to(u.erg / u.s / u.cm**2 / u.Hz)
         nu = (const.c / (475 * u.nm)).to(u.Hz)  # ZTF g-band
         f_det = f_nu_det * nu
 
@@ -100,7 +102,8 @@ class QLFHopkins(AGNDistribution):
 
             # Sum all number densities for luminosities larger than limit
             dn_dlog10L_d3Mpc_visible = df_qlf[
-                df_qlf["bolometric_luminosity"] >= np.log10(L_bol_det.value)
+                (df_qlf["bolometric_luminosity"] >= np.log10(L_bol_det[0].value))
+                & (df_qlf["bolometric_luminosity"] < np.log10(L_bol_det[1].value))
             ]["comoving_number_density"].sum()
 
             # Convert to dOmega_dz volume and append
