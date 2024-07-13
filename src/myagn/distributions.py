@@ -19,7 +19,7 @@ class AGNDistribution:
         dOmega=500,
         dz_grid=np.linspace(0, 1, 50),
         cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
-        limiting_magnitude=np.inf,
+        magnitude_limits=(np.inf, -np.inf),
     ):
         """Calculate number of AGNs in spherical volume element,
         defined by a steradian area dOmega and a redshift grid dz_grid.
@@ -32,8 +32,8 @@ class AGNDistribution:
             _description_, by default np.linspace(0, 1, 50)
         cosmo : _type_, optional
             _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
-        limiting_magnitude : _type_, optional
-            _description_, by default np.inf
+        magnitude_limits : _type_, optional
+            _description_, by default (np.inf, -np.inf)
 
         Returns
         -------
@@ -45,7 +45,7 @@ class AGNDistribution:
         dn_dOmega_dz = self.dn_dOmega_dz(
             zs=dz_grid,
             cosmo=cosmo,
-            limiting_magnitude=limiting_magnitude,
+            magnitude_limits=magnitude_limits,
         )
 
         # Sum, multiply by elements to get total number of agns
