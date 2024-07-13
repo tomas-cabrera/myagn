@@ -112,7 +112,7 @@ def compute(
     redshift,
     fit_key=0,
     qlf_command=QLF_CALCULATOR_PATH,
-    cachedir=f"{pa.dirname(__file__)}/cache",
+    cachedir=f"{pa.dirname(__file__)}/.cache",
     force=False,
 ):
     """
@@ -195,7 +195,7 @@ def compute(
             )
 
     # Read the file and return
-    qlf_out = pd.read_csv(qlf_fileout, delim_whitespace=True)
+    qlf_out = pd.read_csv(qlf_fileout, sep="\s+")
     return qlf_out
 
 

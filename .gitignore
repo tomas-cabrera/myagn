@@ -1,2 +1,8 @@
 # __pycache__
 **/__pycache__/
+
+# caches
+**/.cache/
+
+# egg-info
+**/*.egg-info/
