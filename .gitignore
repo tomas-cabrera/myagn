@@ -9,3 +9,6 @@
 
 # distribution
 /dist/
+
+# test plots
+tests/figures/*
