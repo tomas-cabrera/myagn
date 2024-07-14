@@ -54,16 +54,6 @@ class AGNDistribution:
 
         return n_agns
 
-
-class QLFHopkins(AGNDistribution):
-    """AGN distribution modeled after Hopkins+06
-
-    Parameters
-    ----------
-    AGNDistribution : _type_
-        _description_
-    """
-
     def dn_dOmega_dz(
         self,
         zs=np.linspace(0, 1, 50),
@@ -79,7 +69,11 @@ class QLFHopkins(AGNDistribution):
         cosmo : _type_, optional
             _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
         brightness_limits : _type_, optional
-            _description_, by default None
+            Tuple-like of lower and upper brightness limits.
+            If None (default), then no brightness cut is applied.
+            The units of the argument are used to determine usage:
+                - if magnitude or flux, then assumed to be the limits for ZTF g-band
+                - if luminosity, then assumed to be bolometric luminosity
 
         Returns
         -------
@@ -98,6 +92,16 @@ class QLFHopkins(AGNDistribution):
         dn_dOmega_dz = dn_d3Mpc * cosmo.differential_comoving_volume(zs)
 
         return dn_dOmega_dz
+
+
+class QLFHopkins(AGNDistribution):
+    """AGN distribution modeled after Hopkins+06
+
+    Parameters
+    ----------
+    AGNDistribution : _type_
+        _description_
+    """
 
     def dn_d3Mpc(
         self,
@@ -166,7 +170,9 @@ class QLFHopkins(AGNDistribution):
                 )
             ]["comoving_number_density"].sum()
 
-            # Append to list (0.1 is the luminosity bin width)
+            # Append to list
+            # (0.1 is the luminosity bin width used in the qlfhopkins calculator,
+            #   so we multiply to integrate over log10L)
             dn_d3Mpc.append(dn_dlog10L_d3Mpc * 0.1)
 
         # Convert to numpy array, add units
