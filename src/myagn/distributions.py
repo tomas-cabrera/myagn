@@ -6,7 +6,7 @@ import astropy.units as u
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
 
-from .qlfhopkins import qlfhopkins
+from myagn.qlfhopkins import qlfhopkins
 
 
 class AGNDistribution:
