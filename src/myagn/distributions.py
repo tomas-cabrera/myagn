@@ -94,6 +94,29 @@ class AGNDistribution:
         return dn_dOmega_dz
 
 
+class ConstantPhysicalDensity(AGNDistribution):
+    """AGN distribution with constant physical number density"""
+
+    def __init__(self, n_per_Mpc3) -> None:
+        """_summary_
+
+        Parameters
+        ----------
+        n_per_Mpc3 : _type_
+            The number density of AGNs to use
+        """
+        super().__init__()
+        self.n_per_Mpc3 = n_per_Mpc3
+
+    def dn_d3Mpc(
+        self,
+        zs=np.linspace(0, 1, 50),
+        cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
+        brightness_limits=None,
+    ):
+        return u.quantity(self.n_per_Mpc3.to(u.Mpc**-3) * np.ones_like(zs))
+
+
 class QLFHopkins(AGNDistribution):
     """AGN distribution modeled after Hopkins+06
 
