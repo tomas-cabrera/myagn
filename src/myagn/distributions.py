@@ -15,48 +15,9 @@ class AGNDistribution:
     def __init__(self) -> None:
         pass
 
-    def n_agn_in_dOmega_dz_volume(
-        self,
-        dOmega=500,
-        dz_grid=np.linspace(0, 1, 50),
-        cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
-        magnitude_limits=(np.inf, -np.inf),
-    ):
-        """Calculate number of AGNs in spherical volume element,
-        defined by a steradian area dOmega and a redshift grid dz_grid.
-
-        Parameters
-        ----------
-        dOmega : int, optional
-            _description_, by default 500
-        dz_grid : _type_, optional
-            _description_, by default np.linspace(0, 1, 50)
-        cosmo : _type_, optional
-            _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
-        magnitude_limits : _type_, optional
-            _description_, by default (np.inf, -np.inf)
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-
-        # Calculate number densities at redshift grids
-        dn_dOmega_dz = self.dn_dOmega_dz(
-            zs=dz_grid,
-            cosmo=cosmo,
-            magnitude_limits=magnitude_limits,
-        )
-
-        # Sum, multiply by elements to get total number of agns
-        n_agns = np.trapezoid(dn_dOmega_dz, dz_grid) * dOmega
-
-        return n_agns
-
     def dn_dOmega_dz(
         self,
-        zs=np.linspace(0, 1, 50),
+        zs,
         cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
         brightness_limits=None,
     ):
@@ -93,6 +54,99 @@ class AGNDistribution:
 
         return dn_dOmega_dz
 
+    def n_agn_in_DOmega_Dz_slice(
+        self,
+        z_grid,
+        DOmega=4 * np.pi * u.sr,
+        cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
+        brightness_limits=(np.inf, -np.inf),
+    ):
+        """Calculate number of AGNs in spherical volume element,
+        defined by a steradian area dOmega and a redshift grid dz_grid.
+
+        Parameters
+        ----------
+        dOmega : int, optional
+            _description_, by default 500
+        z_grid : _type_, optional
+            _description_, by default np.linspace(0, 1, 50)
+        cosmo : _type_, optional
+            _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
+        magnitude_limits : _type_, optional
+            _description_, by default (np.inf, -np.inf)
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+
+        # Calculate number densities at redshift grids
+        dn_dOmega_dz = self.dn_dOmega_dz(
+            zs=z_grid,
+            cosmo=cosmo,
+            brightness_limits=brightness_limits,
+        )
+
+        # Sum, multiply by elements to get total number of agns
+        n_agn = np.trapezoid(dn_dOmega_dz, z_grid) * DOmega.to(u.sr)
+
+        return n_agn
+
+    def dp_dOmega_dz(
+        self,
+        z_grid,
+        z_evaluate=None,
+        DOmega=4 * np.pi * u.sr,
+        cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
+        brightness_limits=None,
+    ):
+        """Convert dn_dOmega_dz to probability density.
+        This is done by integrating over redshift and solid angle.
+
+        Parameters
+        ----------
+        z_grid : _type_, optional
+            The redshift domain for the probability density, by default np.linspace(0, 1, 50)*cu.redshift
+        z_evaluate : _type_, optional
+            The redshift array to evaluate the probability density at.
+            By default None; if None, then z_evaluate=z_grid (the probability density is evaluated at every point in z_grid)
+        DOmega : _type_, optional
+            _description_, by default 4*np.pi*u.sr
+        cosmo : _type_, optional
+            _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
+        brightness_limits : _type_, optional
+            _description_, by default None
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        # If no z_evaluate is given, use z_grid
+        if z_evaluate is None:
+            z_evaluate = z_grid
+
+        # Get number distribution
+        dn_dOmega_dz = self.dn_dOmega_dz(
+            zs=z_evaluate,
+            cosmo=cosmo,
+            brightness_limits=brightness_limits,
+        )
+
+        # Get number in grid
+        n_agn = self.n_agn_in_DOmega_Dz_slice(
+            DOmega=DOmega,
+            z_grid=z_grid,
+            cosmo=cosmo,
+            brightness_limits=brightness_limits,
+        )
+
+        # Normalize
+        dp_dOmega_dz = dn_dOmega_dz / n_agn
+
+        return dp_dOmega_dz
+
 
 class ConstantPhysicalDensity(AGNDistribution):
     """AGN distribution with constant physical number density"""
@@ -110,7 +164,7 @@ class ConstantPhysicalDensity(AGNDistribution):
 
     def dn_d3Mpc(
         self,
-        zs=np.linspace(0, 1, 50),
+        zs,
         cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
         brightness_limits=None,
     ):
@@ -128,7 +182,7 @@ class QLFHopkins(AGNDistribution):
 
     def dn_d3Mpc(
         self,
-        zs=np.linspace(0, 1, 50),
+        zs,
         cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
         brightness_limits=None,
     ):
