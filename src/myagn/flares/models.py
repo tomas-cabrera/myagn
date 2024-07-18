@@ -1,4 +1,6 @@
 """Module handling AGN flare modeling"""
+
+import astropy.units as u
 import pandas as pd
 from scipy.stats import norm
 
@@ -11,8 +13,21 @@ class AGNFlareModel:
     _type_
         _description_
     """
+
     def __init__(self) -> None:
         pass
+
+
+class ConstantRate(AGNFlareModel):
+    """Class to handle a constant flare rate model"""
+
+    def __init__(self, flare_rate) -> None:
+        super().__init__()
+        self._flare_rate = flare_rate
+
+    def flare_rate(self, *args, **kwargs):
+        return 1e-4 / (200 * u.day)  # 1e-4 flares/AGN for a 200-day follow-up
+
 
 class Kimura20(AGNFlareModel):
     """A class to handle flare models a la Kimura+20:
@@ -23,15 +38,44 @@ class Kimura20(AGNFlareModel):
     AGNFlareModel : _type_
         _description_
     """
+
     def __init__(self) -> None:
         super().__init__()
         # Structure function parameters from Kimura+20 S2.1,
         self._sf_params = pd.DataFrame(
             [
-                {"band": "g", "SF0": 0.210, "SF0err": 0.003, "dt0": 100, "bt": 0.411, "bterr": 0.13},
-                {"band": "r", "SF0": 0.160, "SF0err": 0.002, "dt0": 100, "bt": 0.440, "bterr": 0.12},
-                {"band": "i", "SF0": 0.133, "SF0err": 0.001, "dt0": 100, "bt": 0.511, "bterr": 0.10},
-                {"band": "z", "SF0": 0.097, "SF0err": 0.001, "dt0": 100, "bt": 0.492, "bterr": 0.13},
+                {
+                    "band": "g",
+                    "SF0": 0.210,
+                    "SF0err": 0.003,
+                    "dt0": 100,
+                    "bt": 0.411,
+                    "bterr": 0.13,
+                },
+                {
+                    "band": "r",
+                    "SF0": 0.160,
+                    "SF0err": 0.002,
+                    "dt0": 100,
+                    "bt": 0.440,
+                    "bterr": 0.12,
+                },
+                {
+                    "band": "i",
+                    "SF0": 0.133,
+                    "SF0err": 0.001,
+                    "dt0": 100,
+                    "bt": 0.511,
+                    "bterr": 0.10,
+                },
+                {
+                    "band": "z",
+                    "SF0": 0.097,
+                    "SF0err": 0.001,
+                    "dt0": 100,
+                    "bt": 0.492,
+                    "bterr": 0.13,
+                },
             ]
         ).set_index("band")
 
