@@ -147,6 +147,46 @@ class AGNDistribution:
 
         return dp_dOmega_dz
 
+    def sample_z(
+        self,
+        n_samples,
+        z_grid,
+        cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
+        brightness_limits=None,
+        rng_np=np.random.default_rng(12345),
+    ):
+        """Sample redshifts from the probability density function.
+
+        Parameters
+        ----------
+        n_samples : _type_
+            _description_
+        z_grid : _type_
+            _description_
+        DOmega : _type_, optional
+            _description_, by default 4*np.pi*u.sr
+        cosmo : _type_, optional
+            _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
+        brightness_limits : _type_, optional
+            _description_, by default None
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        # Get probability density
+        dp_dOmega_dz = self.dn_dOmega_dz(
+            z_grid=z_grid,
+            cosmo=cosmo,
+            brightness_limits=brightness_limits,
+        )
+
+        # Sample redshifts
+        z_samples = rng_np.choice(z_grid, size=n_samples, p=dp_dOmega_dz)
+
+        return z_samples
+
 
 class ConstantPhysicalDensity(AGNDistribution):
     """AGN distribution with constant physical number density"""
