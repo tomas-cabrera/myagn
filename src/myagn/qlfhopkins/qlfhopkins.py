@@ -202,4 +202,4 @@ def compute(
 ###############################################################################
 
 # Setup calculator on import
-setup_qlf_calculator()
+# setup_qlf_calculator()
