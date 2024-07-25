@@ -89,7 +89,7 @@ class AGNDistribution:
         )
 
         # Sum, multiply by elements to get total number of agns
-        n_agn = np.trapezoid(dn_dOmega_dz, z_grid) * DOmega.to(u.sr)
+        n_agn = np.trapz(dn_dOmega_dz, z_grid) * DOmega.to(u.sr)
 
         return n_agn
 
@@ -147,6 +147,58 @@ class AGNDistribution:
 
         return dp_dOmega_dz
 
+    def dp_dz(
+        self,
+        z_grid,
+        z_evaluate=None,
+        cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
+        brightness_limits=None,
+    ):
+        """Convert dn_dOmega_dz to probability density.
+        This is done by integrating over redshift and solid angle.
+
+        Parameters
+        ----------
+        z_grid : _type_, optional
+            The redshift domain for the probability density, by default np.linspace(0, 1, 50)*cu.redshift
+        z_evaluate : _type_, optional
+            The redshift array to evaluate the probability density at.
+            By default None; if None, then z_evaluate=z_grid (the probability density is evaluated at every point in z_grid)
+        DOmega : _type_, optional
+            _description_, by default 4*np.pi*u.sr
+        cosmo : _type_, optional
+            _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
+        brightness_limits : _type_, optional
+            _description_, by default None
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        # If no z_evaluate is given, use z_grid
+        if z_evaluate is None:
+            z_evaluate = z_grid
+
+        # Get number distribution
+        dn_dOmega_dz_evaluate = self.dn_dOmega_dz(
+            zs=z_evaluate,
+            cosmo=cosmo,
+            brightness_limits=brightness_limits,
+        )
+
+        # Get number in grid
+        dn_dOmega_dz_grid = self.dn_dOmega_dz(
+            zs=z_grid,
+            cosmo=cosmo,
+            brightness_limits=brightness_limits,
+        )
+
+        # Normalize
+        dp_dz_evaluate = dn_dOmega_dz_evaluate / dn_dOmega_dz_grid.sum()
+
+        return dp_dz_evaluate
+
     def sample_z(
         self,
         n_samples,
@@ -176,14 +228,14 @@ class AGNDistribution:
             _description_
         """
         # Get probability density
-        dp_dOmega_dz = self.dn_dOmega_dz(
+        dp_dz = self.dp_dz(
             z_grid=z_grid,
             cosmo=cosmo,
             brightness_limits=brightness_limits,
         )
 
         # Sample redshifts
-        z_samples = rng_np.choice(z_grid, size=n_samples, p=dp_dOmega_dz)
+        z_samples = rng_np.choice(z_grid, size=n_samples, p=dp_dz)
 
         return z_samples
 
@@ -208,7 +260,7 @@ class ConstantPhysicalDensity(AGNDistribution):
         cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
         brightness_limits=None,
     ):
-        return u.quantity(self.n_per_Mpc3.to(u.Mpc**-3) * np.ones_like(zs))
+        return u.Quantity(self.n_per_Mpc3.to(u.Mpc**-3) * np.ones_like(zs))
 
 
 class QLFHopkins(AGNDistribution):
