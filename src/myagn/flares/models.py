@@ -26,7 +26,7 @@ class ConstantRate(AGNFlareModel):
         self._flare_rate = flare_rate
 
     def flare_rate(self, *args, **kwargs):
-        return 1e-4 / (200 * u.day)  # 1e-4 flares/AGN for a 200-day follow-up
+        return self._flare_rate
 
 
 class Kimura20(AGNFlareModel):
