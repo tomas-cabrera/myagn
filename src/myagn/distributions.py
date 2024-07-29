@@ -54,45 +54,6 @@ class AGNDistribution:
 
         return dn_dOmega_dz
 
-    def n_agn_in_DOmega_Dz_slice(
-        self,
-        z_grid,
-        DOmega=4 * np.pi * u.sr,
-        cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
-        brightness_limits=(np.inf, -np.inf),
-    ):
-        """Calculate number of AGNs in spherical volume element,
-        defined by a steradian area dOmega and a redshift grid dz_grid.
-
-        Parameters
-        ----------
-        dOmega : int, optional
-            _description_, by default 500
-        z_grid : _type_, optional
-            _description_, by default np.linspace(0, 1, 50)
-        cosmo : _type_, optional
-            _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
-        magnitude_limits : _type_, optional
-            _description_, by default (np.inf, -np.inf)
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
-
-        # Calculate number densities at redshift grids
-        dn_dOmega_dz = self.dn_dOmega_dz(
-            zs=z_grid,
-            cosmo=cosmo,
-            brightness_limits=brightness_limits,
-        )
-
-        # Sum, multiply by elements to get total number of agns
-        n_agn = np.trapz(dn_dOmega_dz, z_grid) * DOmega.to(u.sr)
-
-        return n_agn
-
     def dp_dOmega_dz(
         self,
         z_grid,
@@ -127,25 +88,26 @@ class AGNDistribution:
         if z_evaluate is None:
             z_evaluate = z_grid
 
-        # Get number distribution
-        dn_dOmega_dz = self.dn_dOmega_dz(
+        # Get number distribution over values
+        dn_dOmega_dz_evaluate = self.dn_dOmega_dz(
             zs=z_evaluate,
             cosmo=cosmo,
             brightness_limits=brightness_limits,
         )
 
-        # Get number in grid
-        n_agn = self.n_agn_in_DOmega_Dz_slice(
-            DOmega=DOmega,
-            z_grid=z_grid,
+        # Get number distribution over grid
+        dn_dOmega_dz_grid = self.dn_dOmega_dz(
+            zs=z_grid,
             cosmo=cosmo,
             brightness_limits=brightness_limits,
         )
 
-        # Normalize
-        dp_dOmega_dz = dn_dOmega_dz / n_agn
+        # Normalize evaluate values to grid, solid angle
+        dp_dOmega_dz_evaluate = dn_dOmega_dz_evaluate / (
+            np.trapz(dn_dOmega_dz_grid, z_grid) * DOmega.to(u.sr)
+        )
 
-        return dp_dOmega_dz
+        return dp_dOmega_dz_evaluate
 
     def dp_dz(
         self,
