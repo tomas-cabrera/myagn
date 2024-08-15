@@ -88,7 +88,7 @@ class Kimura20(AGNFlareModel):
         band : _type_
             _description_
         dt : _type_
-            _description_
+            The time interval for the given dmag, in rest-frame days.
 
         Returns
         -------
@@ -101,7 +101,7 @@ class Kimura20(AGNFlareModel):
         sf = sfps["SF0"] * (dt / sfps["dt0"]) ** sfps["bt"]
         return sf
 
-    def flare_rate(self, band, dt, dmag):
+    def flare_rate(self, *args, **kwargs):
         """Computes the flare rate for the given parameters.
         Arrays may be passed to all arguments;
         if multiple arrays are passed, then they must be of the same dimensionality.
@@ -111,7 +111,7 @@ class Kimura20(AGNFlareModel):
         band : _type_
             _description_
         dt : _type_
-            _description_
+            The time interval for the given dmag, in rest-frame days.
         dmag : _type_
             _description_
 
@@ -120,6 +120,8 @@ class Kimura20(AGNFlareModel):
         _type_
             _description_
         """
+        # Extract parameters
+        band, dt, dmag = args
         # Calculate structure function
         sf = self.structure_function(band, dt)
         # Calculate rate
