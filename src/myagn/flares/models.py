@@ -124,6 +124,6 @@ class Kimura20(AGNFlareModel):
         band, dt, dmag = args
         # Calculate structure function
         sf = self.structure_function(band, dt)
-        # Calculate rate
-        rate = 1 - norm.cdf(dmag, loc=0, scale=sf)
+        # Calculate rate; factor of 2**0.5 is because scipy's norm.cdf normalizes the argument of the exponent as -x^2/2, not x^2
+        rate = 1 - norm.cdf(dmag, loc=0, scale=sf / (2**0.5))
         return rate
