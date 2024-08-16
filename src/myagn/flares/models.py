@@ -2,7 +2,7 @@
 
 import astropy.units as u
 import pandas as pd
-from scipy.stats import norm
+from scipy.special import erfc
 
 
 class AGNFlareModel:
@@ -50,7 +50,7 @@ class Kimura20(AGNFlareModel):
                     "SF0err": 0.003,
                     "dt0": 100,
                     "bt": 0.411,
-                    "bterr": 0.13,
+                    "bterr": 0.013,
                 },
                 {
                     "band": "r",
@@ -58,7 +58,7 @@ class Kimura20(AGNFlareModel):
                     "SF0err": 0.002,
                     "dt0": 100,
                     "bt": 0.440,
-                    "bterr": 0.12,
+                    "bterr": 0.012,
                 },
                 {
                     "band": "i",
@@ -66,7 +66,7 @@ class Kimura20(AGNFlareModel):
                     "SF0err": 0.001,
                     "dt0": 100,
                     "bt": 0.511,
-                    "bterr": 0.10,
+                    "bterr": 0.010,
                 },
                 {
                     "band": "z",
@@ -74,7 +74,7 @@ class Kimura20(AGNFlareModel):
                     "SF0err": 0.001,
                     "dt0": 100,
                     "bt": 0.492,
-                    "bterr": 0.13,
+                    "bterr": 0.013,
                 },
             ]
         ).set_index("band")
@@ -124,6 +124,6 @@ class Kimura20(AGNFlareModel):
         band, dt, dmag = args
         # Calculate structure function
         sf = self.structure_function(band, dt)
-        # Calculate rate; factor of 2**0.5 is because scipy's norm.cdf normalizes the argument of the exponent as -x^2/2, not x^2
-        rate = 1 - norm.cdf(dmag, loc=0, scale=sf / (2**0.5))
+        # Calculate rate
+        rate = 0.5 * erfc(dmag / sf)
         return rate
