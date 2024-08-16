@@ -124,6 +124,8 @@ class Kimura20(AGNFlareModel):
         band, dt, dmag = args
         # Calculate structure function
         sf = self.structure_function(band, dt)
-        # Calculate rate
-        rate = 0.5 * erfc(dmag / sf)
+        # Calculate rate; the factor of sqrt(2) is appropriate for calculating the cdf of a Gaussian
+        # from the complementary error function:
+        # the erfc does not include the factor of 1/2 in the Gaussian exponent by definition
+        rate = 0.5 * erfc(dmag / sf / (2**0.5))
         return rate
