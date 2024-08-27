@@ -114,6 +114,8 @@ class Kimura20(AGNFlareModel):
             The time interval for the given dmag, in rest-frame days.
         dmag : _type_
             _description_
+        z : _type_
+            Redshift of flare; used to convert rate to observer frame.
 
         Returns
         -------
@@ -121,11 +123,15 @@ class Kimura20(AGNFlareModel):
             _description_
         """
         # Extract parameters
-        band, dt, dmag = args
+        band, dt, dmag, z = args
         # Calculate structure function
         sf = self.structure_function(band, dt)
         # Calculate rate; the factor of sqrt(2) is appropriate for calculating the cdf of a Gaussian
         # from the complementary error function:
         # the erfc does not include the factor of 1/2 in the Gaussian exponent by definition
         rate = 0.5 * erfc(dmag / sf / (2**0.5))
+        # Divide by dt to get the rate per rest frame day
+        rate /= dt
+        # Multiply by (1+z) to convert to per observer frame day
+        rate *= 1 + z
         return rate
