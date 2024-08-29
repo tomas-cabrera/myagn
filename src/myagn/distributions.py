@@ -20,6 +20,7 @@ class AGNDistribution:
         zs,
         cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
         brightness_limits=None,
+        band="g",
     ):
         """Calculate number density of visible AGNs at given redshifts.
 
@@ -47,6 +48,7 @@ class AGNDistribution:
             zs=zs,
             cosmo=cosmo,
             brightness_limits=brightness_limits,
+            band=band,
         )
 
         # Convert to dn/dOmega/dz
@@ -239,6 +241,7 @@ class QLFHopkins(AGNDistribution):
         zs,
         cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
         brightness_limits=None,
+        band="g",
     ):
         """Calculate number density of visible AGNs at given redshifts.
 
@@ -263,9 +266,10 @@ class QLFHopkins(AGNDistribution):
             luminosity_limits = (-np.inf, np.inf) * u.erg / u.s
         # If a magnitude or flux is used
         elif brightness_limits.unit.is_equivalent(u.ABmag):
+            wl = {"g": 475, "i": 806}[band]
             # Assume ZTF g-band magnitude/flux for now
             f_nu_det = (brightness_limits).to(u.erg / u.s / u.cm**2 / u.Hz)
-            nu = (const.c / (475 * u.nm)).to(u.Hz)
+            nu = (const.c / (wl * u.nm)).to(u.Hz)
             flux_limits = f_nu_det * nu
         # If a luminosity is used
         elif brightness_limits.unit.is_equivalent(u.erg / u.s):
