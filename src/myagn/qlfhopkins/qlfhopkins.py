@@ -178,7 +178,7 @@ def compute(
     if not pa.exists(qlf_fileout) or force:
         # Make the outdir path
         if not pa.exists(cachedir):
-            os.makedirs(cachedir)
+            os.makedirs(cachedir, exist_ok=True)
 
         # Generate the file
         with open(qlf_fileout, "w") as f:
