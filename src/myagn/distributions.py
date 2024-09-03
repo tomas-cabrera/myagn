@@ -45,7 +45,7 @@ class AGNDistribution:
 
         # Get density of AGNs in Mpc^-3
         dn_d3Mpc = self.dn_d3Mpc(
-            zs=zs,
+            zs,
             cosmo=cosmo,
             brightness_limits=brightness_limits,
             band=band,
@@ -220,10 +220,10 @@ class ConstantPhysicalDensity(AGNDistribution):
 
     def dn_d3Mpc(
         self,
-        zs,
-        cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
-        brightness_limits=None,
+        *args,
+        **kwargs,
     ):
+        zs = args[0]
         return u.Quantity(self.n_per_Mpc3.to(u.Mpc**-3) * np.ones_like(zs))
 
 

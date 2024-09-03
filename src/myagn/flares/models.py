@@ -79,6 +79,27 @@ class Kimura20(AGNFlareModel):
             ]
         ).set_index("band")
 
+    def _calc_sf(self, SF0, dt0, bt, dt):
+        """Calculates the structure function for the given parameters.
+
+        Parameters
+        ----------
+        sf0 : _type_
+            _description_
+        dt0 : _type_
+            _description_
+        bt : _type_
+            _description_
+        dt : _type_
+            The time interval for the given dmag, in rest-frame days.
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+        return SF0 * (dt / dt0) ** bt
+
     def structure_function(self, band, dt):
         """Computes the structure function for the given time delta.
         Multiple bands/dts may be passed as array-like objects.
@@ -98,7 +119,7 @@ class Kimura20(AGNFlareModel):
         # Get band parameters
         sfps = self._sf_params.loc[band]
         # Calculate structure function
-        sf = sfps["SF0"] * (dt / sfps["dt0"]) ** sfps["bt"]
+        sf = self._calc_sf(sfps["SF0"], sfps["dt0"], sfps["bt"], dt)
         return sf
 
     def flare_rate(self, *args, **kwargs):
@@ -132,6 +153,6 @@ class Kimura20(AGNFlareModel):
         rate = 0.5 * erfc(dmag / sf / (2**0.5))
         # Divide by dt to get the rate per rest frame day
         rate /= dt
-        # Multiply by (1+z) to convert to per observer frame day
-        rate *= 1 + z
+        # Divide by (1+z) to convert to per observer frame day
+        rate /= 1 + z
         return rate
