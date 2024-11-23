@@ -1,6 +1,6 @@
-"""Reproduce AGN components of Figure 1 from Palmese+21.
-The original figure includes information from the skymap for GW190521,
-so the resulting figure from this script will not be identical."""
+"""Reproduce the quasar luminosity function from Colin Burke's notebook:
+https://github.com/burke86/J1249/blob/main/J1249.ipynb
+"""
 
 import os
 import os.path as pa
@@ -19,7 +19,6 @@ cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 
 def test_burkeJ1249_phi():
-    """Reproduce Figure 1 from Palmese+21."""
 
     # Initialize distribution
     qlf = QLFHopkins()
@@ -41,35 +40,6 @@ def test_burkeJ1249_phi():
         "orange": (1e47, 1e48) * u.erg / u.s,
         "r": (1e48, 1e49) * u.erg / u.s,
     }
-
-    # Iterate over redshifts
-    dn_d3Mpc = []
-    for color, Lbin in color2Lbin.items():
-        # Get number density
-        dn_d3Mpc_temp = qlf.dn_d3Mpc(
-            zs=zs,
-            cosmo=cosmo,
-            brightness_limits=Lbin,
-        )
-
-        # Append to list
-        dn_d3Mpc.append(dn_d3Mpc_temp)
-
-    # Cast to array
-    dn_d3Mpc = u.Quantity(dn_d3Mpc)
-
-    # Plot the number density as a function of redshift
-    for ci, color in enumerate(color2Lbin.keys()):
-        ax.plot(
-            zs,
-            np.log10(dn_d3Mpc[ci, :].value),
-            color=color,
-            lw=2,
-        )
-
-    ##############################
-    ###    Luminosity interp   ###
-    ##############################
 
     # Iterate over redshifts
     dn_d3Mpc = []
@@ -101,7 +71,6 @@ def test_burkeJ1249_phi():
             np.log10(dn_d3Mpc[ci, :].value),
             color=color,
             lw=2,
-            ls="--",
         )
 
     ##############################
@@ -122,7 +91,7 @@ def test_burkeJ1249_phi():
         np.log10(dn_d3Mpc.value),
         color="r",
         linestyle=":",
-        label="i<19",
+        label=r"$i < 19$ mag",
     )
 
     ##############################
@@ -136,7 +105,7 @@ def test_burkeJ1249_phi():
     ax.set_ylabel(r"$\log_{10} \left( \phi(L) / dz~[Mpc^{-3}] \right)$")
 
     # Save figure
-    plt.legend(loc="upper right")
+    plt.legend(loc="lower center", frameon=False)
     plt.tight_layout()
     figpath = (
         f"{pa.dirname(__file__)}/figures/{pa.basename(__file__).replace('.py', '.png')}"

@@ -1,10 +1,15 @@
 """Module handling AGN distributions"""
 
+import os
+import shutil
+import os.path as pa
 import astropy.constants as const
 import astropy.cosmology.units as cu
 import astropy.units as u
+from astropy.table import Table
 import numpy as np
-from astropy.cosmology import FlatLambdaCDM
+from astropy.cosmology import FlatLambdaCDM, z_at_value
+from urllib.request import urlretrieve
 
 from myagn.qlfhopkins import qlfhopkins
 
@@ -14,6 +19,69 @@ class AGNDistribution:
 
     def __init__(self) -> None:
         pass
+
+    def dn_d3Mpc_at_dL(
+        self,
+        dLs,
+    ):
+        """_summary_
+
+        Parameters
+        ----------
+        dLs : _type_
+            _description_
+        cosmology : _type_, optional
+            _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
+        brightness_limits : _type_, optional
+            _description_, by default None
+        band : str, optional
+            _description_, by default "g"
+        """
+        # Calculate redshifts
+        zs = z_at_value(self.cosmo.luminosity_distance, dLs)
+
+        # Get density of AGNs in Mpc^-3
+        dn_d3Mpc = self.dn_d3Mpc(
+            zs.value,
+            cosmo=self.cosmo,
+            brightness_limits=self.brightness_limits,
+            band=self.band,
+        )
+
+        return dn_d3Mpc
+
+    def _dn_d3Mpc_at_dL(
+        self,
+        dLs,
+        cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
+        brightness_limits=None,
+        band="g",
+    ):
+        """_summary_
+
+        Parameters
+        ----------
+        dLs : _type_
+            _description_
+        cosmology : _type_, optional
+            _description_, by default FlatLambdaCDM(H0=70, Om0=0.3)
+        brightness_limits : _type_, optional
+            _description_, by default None
+        band : str, optional
+            _description_, by default "g"
+        """
+        # Calculate redshifts
+        zs = z_at_value(cosmo.luminosity_distance, dLs)
+
+        # Get density of AGNs in Mpc^-3
+        dn_d3Mpc = self.dn_d3Mpc(
+            zs.value,
+            cosmo=cosmo,
+            brightness_limits=brightness_limits,
+            band=band,
+        )
+
+        return dn_d3Mpc
 
     def dn_dOmega_dz(
         self,
@@ -263,7 +331,7 @@ class QLFHopkins(AGNDistribution):
         luminosity_limits = None
         flux_limits = None
         if brightness_limits is None:
-            luminosity_limits = (-np.inf, np.inf) * u.erg / u.s
+            luminosity_limits = (0, np.inf) * u.erg / u.s
         # If a magnitude or flux is used
         elif brightness_limits.unit.is_equivalent(u.ABmag):
             wl = {"g": 475, "i": 806}[band]
@@ -290,6 +358,12 @@ class QLFHopkins(AGNDistribution):
                     10 * flux_limits * 4 * np.pi * cosmo.luminosity_distance(z) ** 2
                 ).to(u.erg / u.s)
 
+            # Calculate log luminosity
+            # This section is largely here to avoid a bunch of RuntimeWarnings due to talking logs of zero
+            log_luminosity_limits = [
+                -np.inf if lim.value == 0 else np.log10(lim.value) for lim in luminosity_limits
+            ]
+
             # Get qlf info
             df_qlf = qlfhopkins.compute(0, z)
 
@@ -297,11 +371,11 @@ class QLFHopkins(AGNDistribution):
             dn_dlog10L_d3Mpc = df_qlf[
                 (
                     df_qlf["bolometric_luminosity"]
-                    >= np.log10(luminosity_limits[0].value)
+                    >= log_luminosity_limits[0]
                 )
                 & (
                     df_qlf["bolometric_luminosity"]
-                    < np.log10(luminosity_limits[1].value)
+                    < log_luminosity_limits[1]
                 )
             ]["comoving_number_density"].sum()
 
@@ -312,5 +386,72 @@ class QLFHopkins(AGNDistribution):
 
         # Convert to numpy array, add units
         dn_d3Mpc = np.array(dn_d3Mpc) * u.Mpc**-3
+
+        return dn_d3Mpc
+
+
+class Milliquas(AGNDistribution):
+
+    def __init__(
+        self,
+        cachedir=f"{pa.dirname(__file__)}/.cache",
+        catalog_url="https://quasars.org/milliquas.fits.zip",
+    ) -> None:
+        """_summary_
+
+        Parameters
+        ----------
+        n_per_Mpc3 : _type_
+            The number density of AGNs to use
+        """
+        super().__init__()
+
+        # Make Milliquas cache
+        self._cachedir = cachedir
+
+        # Get catalog
+        self.get_catalog(catalog_url)
+        self.unzip_catalog()
+
+        # Load catalog
+        self.load_catalog()
+
+    def get_catalog(self, catalog_url=None):
+        # Update catalog URL if needed
+        if catalog_url is not None:
+            self._catalog_url = catalog_url
+
+        # Generate catalog path
+        os.makedirs(self._cachedir, exist_ok=True)
+        self._catalog_path = pa.join(self._cachedir, pa.basename(self._catalog_url))
+
+        # Download catalog
+        urlretrieve(self._catalog_url, self._catalog_path)
+
+    def unzip_catalog(self):
+        shutil.unpack_archive(self._catalog_path, self._cachedir)
+
+    def load_catalog(self):
+        self._catalog = Table.read(self._catalog_path)
+
+    def dn_d3Mpc(
+        self,
+        *args,
+        **kwargs,
+    ):
+        # Parse args
+        zs, z_grid = args
+
+        # Mask catalog
+        tempcat = self._catalog[kwargs["mask"]]
+
+        # Make histogram of redshifts
+        hist, _ = np.histogram(tempcat["Z"], bins=z_grid)
+
+        # Get number density
+        dn_d3Mpc = hist / np.diff(z_grid)
+
+        # Get number density at zs
+        dn_d3Mpc = dn_d3Mpc[np.digitize(zs, z_grid) - 1]
 
         return dn_d3Mpc

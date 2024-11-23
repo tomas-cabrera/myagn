@@ -107,7 +107,7 @@ def setup_qlf_calculator(
     return outpath
 
 
-def compute(
+def _compute(
     nu,
     redshift,
     fit_key=0,
@@ -174,29 +174,75 @@ def compute(
     # Compose the path to the output file
     qlf_fileout = f"{cachedir}/nu-{nu}_z-{redshift}_fit-key-{fit_key}.txt"
 
-    # Generate file if it doesn't exist, or if forced
-    if not pa.exists(qlf_fileout) or force:
-        # Make the outdir path
-        if not pa.exists(cachedir):
-            os.makedirs(cachedir, exist_ok=True)
+    # Try to read the file if it exists
+    if pa.exists(qlf_fileout) and not force:
+        try:
+            qlf_out = pd.read_csv(qlf_fileout, sep="\s+")
+            return qlf_out
+        except pd.errors.EmptyDataError:
+            pass
 
-        # Generate the file
-        with open(qlf_fileout, "w") as f:
-            # Header
-            f.write(
-                "observed_luminosity ABmag S_nu bolometric_luminosity comoving_number_density\n"
-            )
-        with open(qlf_fileout, "a") as f:
-            # Run the calculator, write output to file
-            subprocess.run(
-                [qlf_command, str(nu), str(redshift), str(fit_key)],
-                stdout=f,
-                check=True,
-            )
+    # If things have progressed past the above section, run the calculator
+    # Make the outdir path
+    if not pa.exists(cachedir):
+        os.makedirs(cachedir, exist_ok=True)
+
+    # Generate the file
+    with open(qlf_fileout, "w") as f:
+        # Header
+        f.write(
+            "observed_luminosity ABmag S_nu bolometric_luminosity comoving_number_density\n"
+        )
+    with open(qlf_fileout, "a") as f:
+        # Run the calculator, write output to file
+        subprocess.run(
+            [qlf_command, str(nu), str(redshift), str(fit_key)],
+            stdout=f,
+            check=True,
+        )
 
     # Read the file and return
     qlf_out = pd.read_csv(qlf_fileout, sep="\s+")
     return qlf_out
+
+
+def compute(
+    nu,
+    redshift,
+    fit_key=0,
+    qlf_command=QLF_CALCULATOR_PATH,
+    cachedir=f"{pa.dirname(__file__)}/.cache",
+    force=False,
+):
+    """
+    TC: A wrapper for _compute that interpolates the values from a grid resolved to 0.01 in redshift.
+    """
+    # Get the nearest redshifts
+    redshift_lo = int(redshift * 100) * 0.01
+    redshift_hi = redshift_lo + 0.01
+
+    # Get the values at the nearest redshifts
+    qlf_lo = _compute(
+        nu,
+        redshift_lo,
+        fit_key=fit_key,
+        qlf_command=qlf_command,
+        cachedir=cachedir,
+        force=force,
+    )
+    qlf_hi = _compute(
+        nu,
+        redshift_hi,
+        fit_key=fit_key,
+        qlf_command=qlf_command,
+        cachedir=cachedir,
+        force=force,
+    )
+
+    # Interpolate the values
+    qlf = qlf_lo + (qlf_hi - qlf_lo) * (redshift - redshift_lo) / 0.01
+
+    return qlf
 
 
 ###############################################################################
