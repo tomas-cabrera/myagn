@@ -12,7 +12,7 @@ import pytest
 from astropy.cosmology import FlatLambdaCDM
 from astropy.io import fits
 
-from myagn.distributions import QLFHopkins
+from myagn.distributions import QLFHopkins, Milliquas
 from myagn.qlfhopkins import qlfhopkins
 
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
@@ -67,11 +67,11 @@ def test_burkeJ1249_milliquas():
 
     # Define paths
     milliquas_paths = {
-        "MILLIQUAS-GW190521": "/home/tomas/academia/projects/decam_followup_O4/crossmatch/GW190521/GW190521_cr90_2D_milliquas.fits",
-        "MILLIQUAS*gwarea/skyarea": "/home/tomas/academia/data/milliquas/milliquas.fits",
+        # "MILLIQUAS-GW190521": "/home/tomas/academia/projects/decam_followup_O4/crossmatch/GW190521/GW190521_cr90_2D_milliquas.fits",
+        "MILLIQUAS*gwarea/skyarea": "/hildafs/projects/phy220048p/share/milliquas/v7.9/milliquas.fits",
     }
     milliquas_ls = {
-        "MILLIQUAS-GW190521": "--",
+        # "MILLIQUAS-GW190521": "--",
         "MILLIQUAS*gwarea/skyarea": ":",
     }
 
@@ -110,13 +110,25 @@ def test_burkeJ1249_milliquas():
             ls=milliquas_ls[k],
         )
 
+    # AGNDistribution implementation
+    milliquas_dist = Milliquas()
+    # milliquas_mask = np.array(["q" not in t for t in milliquas_dist._catalog["Type"]]) & (milliquas_dist._catalog["z"] <= 1.2) & (milliquas_dist._catalog["Type"] != "B")
+    milliquas_mask = np.array(["q" not in t for t in milliquas_dist._catalog["Type"]]) #& (milliquas_dist._catalog["Rmag"] > 5) # & (milliquas_dist._catalog["z"] <= 1.2)
+    milliquas_dist._catalog = milliquas_dist._catalog[milliquas_mask]
+    ax.plot(
+        zs,
+        np.log10((milliquas_dist._dn_dz(zs=zs) * (936 * u.deg**2).to(u.sr) / (4 * np.pi)).value),
+        label="Milliquas_dist",
+        color="xkcd:blue",
+    )
+
     ##############################
     ###     Clean and save     ###
     ##############################
 
     # Set bounds, add labels
     ax.set_xlim(0, 6)
-    ax.set_ylim(0, 7)
+    # ax.set_ylim(0, 7)
     ax.set_xlabel("Redshift")
     ax.set_ylabel(r"$\log_{10} \left( dn / dz \right)$")
 

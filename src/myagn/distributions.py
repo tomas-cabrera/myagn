@@ -10,6 +10,7 @@ from astropy.table import Table
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM, z_at_value
 from urllib.request import urlretrieve
+import subprocess
 
 from myagn.qlfhopkins import qlfhopkins
 
@@ -89,6 +90,7 @@ class AGNDistribution:
         cosmo=FlatLambdaCDM(H0=70, Om0=0.3),
         brightness_limits=None,
         band="g",
+        mask=None,
     ):
         """Calculate number density of visible AGNs at given redshifts.
 
@@ -112,12 +114,18 @@ class AGNDistribution:
         """
 
         # Get density of AGNs in Mpc^-3
-        dn_d3Mpc = self.dn_d3Mpc(
-            zs,
-            cosmo=cosmo,
-            brightness_limits=brightness_limits,
-            band=band,
-        )
+        if mask is not None:
+            dn_d3Mpc = self.dn_d3Mpc(
+                zs,
+                mask=mask,
+            )
+        else:
+            dn_d3Mpc = self.dn_d3Mpc(
+                zs,
+                cosmo=cosmo,
+                brightness_limits=brightness_limits,
+                band=band,
+            )
 
         # Convert to dn/dOmega/dz
         dn_dOmega_dz = dn_d3Mpc * cosmo.differential_comoving_volume(zs)
@@ -395,7 +403,10 @@ class Milliquas(AGNDistribution):
     def __init__(
         self,
         cachedir=f"{pa.dirname(__file__)}/.cache",
-        catalog_url="https://quasars.org/milliquas.fits.zip",
+        # catalog_url="https://quasars.org/milliquas.fits.zip",
+        catalog_url="https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/fits.gz?VII/290/catalog.dat.gz", # MQv7.2, compressed version
+        # catalog_url="https://cdsarc.cds.unistra.fr/viz-bin/nph-Cat/fits?VII/290/catalog.dat.gz", # MQv7.2
+        z_grid=np.linspace(0, 6, 100),
     ) -> None:
         """_summary_
 
@@ -411,10 +422,13 @@ class Milliquas(AGNDistribution):
 
         # Get catalog
         self.get_catalog(catalog_url)
-        self.unzip_catalog()
+        # self.unzip_catalog()
 
         # Load catalog
         self.load_catalog()
+
+        # Set z_grid
+        self.z_grid = z_grid
 
     def get_catalog(self, catalog_url=None):
         # Update catalog URL if needed
@@ -424,34 +438,64 @@ class Milliquas(AGNDistribution):
         # Generate catalog path
         os.makedirs(self._cachedir, exist_ok=True)
         self._catalog_path = pa.join(self._cachedir, pa.basename(self._catalog_url))
+        if pa.exists(self._catalog_path):
+            return
 
         # Download catalog
-        urlretrieve(self._catalog_url, self._catalog_path)
+        # urlretrieve(self._catalog_url, self._catalog_path)
+        subprocess.run(
+            [
+                "wget",
+                f"--output-document={self._catalog_path}",
+                # f"--directory-prefix={self._cachedir}",
+                f"{self._catalog_url}",
+            ],
+        )
 
     def unzip_catalog(self):
-        shutil.unpack_archive(self._catalog_path, self._cachedir)
+        shutil.unpack_archive(self._catalog_path, self._cachedir, format="gztar")
+        # subprocess.run(
+        #     [
+        #         "tar",
+        #         "-xzf",
+        #         f"{self._catalog_url}",
+        #         f"{self._catalog_path}",
+        #     ],
+        # )
 
     def load_catalog(self):
-        self._catalog = Table.read(self._catalog_path)
+        self._catalog = Table.read(self._catalog_path, format="fits")
 
-    def dn_d3Mpc(
+    def _dn_dOmega_dz(
         self,
         *args,
+        **kwargs
+    ):
+        return self._dn_dz(*args,**kwargs) / (4 * np.pi * u.sr)
+
+    def _dn_dz(
+        self,
+        zs,
+        z_grid=None,
         **kwargs,
     ):
-        # Parse args
-        zs, z_grid = args
-
-        # Mask catalog
-        tempcat = self._catalog[kwargs["mask"]]
+        # z_grid
+        if z_grid is None:
+            z_grid = self.z_grid
 
         # Make histogram of redshifts
-        hist, _ = np.histogram(tempcat["Z"], bins=z_grid)
+        hist, _ = np.histogram(self._catalog["z"], bins=self.z_grid)
 
         # Get number density
-        dn_d3Mpc = hist / np.diff(z_grid)
+        dn_dz_grid = hist / np.diff(self.z_grid)
+        z_grid_temp = self.z_grid[:-1] + np.diff(self.z_grid) / 2
 
         # Get number density at zs
-        dn_d3Mpc = dn_d3Mpc[np.digitize(zs, z_grid) - 1]
+        dn_dz = np.interp(zs, z_grid_temp, dn_dz_grid)
+
+        return dn_dz
+
+    def dn_d3Mpc(self, zs, cosmo=FlatLambdaCDM(H0=70, Om0=0.3), **kwargs):
+        dn_d3Mpc = self._dn_dOmega_dz(zs) / cosmo.differential_comoving_volume(zs)
 
         return dn_d3Mpc
